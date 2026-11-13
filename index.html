@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tiles — Rhythm Beatmap Player</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+  <!-- CLEAN TOP BAR -->
+  <header class="top-bar">
+    <div class="track-title" id="trackStatus">Click "Demo Song" to start</div>
+    <div class="top-actions">
+      <button id="btnDemoTrack" class="btn-soft">Demo Song</button>
+      <button id="btnPlayPause" class="btn-primary" disabled>Play</button>
+      <button id="btnRestart" disabled title="Restart (R)">Restart</button>
+      <button id="btnOpenSettings">Settings</button>
+    </div>
+  </header>
+
+  <!-- MINIMAL SCORE DISPLAY -->
+  <div class="floating-hud">
+    <div class="hud-score" id="statScore">0</div>
+    <div class="hud-sub" id="statAccuracy">100% · <span id="gradeBadge">S+</span></div>
+  </div>
+
+  <!-- CENTER PIANO TILES CANVAS -->
+  <main>
+    <canvas id="gameCanvas"></canvas>
+  </main>
+
+  <!-- SLIDE-OUT SETTINGS DRAWER -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <aside class="settings-drawer" id="settingsDrawer">
+    <div class="drawer-header">
+      <h2>Settings</h2>
+      <button id="btnCloseSettings" style="padding: 5px 10px;">✕</button>
+    </div>
+
+    <div class="group-box">
+      <div class="group-title">
+        <span>Audio Track</span>
+        <span id="bpmBadge">-- BPM</span>
+      </div>
+      <label class="drop-zone" id="dropZone" for="audioFileInput">
+        Drop <b>.mp3 / .wav / .ogg</b> here or click to browse
+      </label>
+      <input type="file" id="audioFileInput" accept=".mp3,.wav,.ogg,audio/*" />
+      <button id="btnAutoplay">Autoplay: Off</button>
+    </div>
+
+    <div class="group-box">
+      <div class="group-title">
+        <span>Chart Generator</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label"><span>Difficulty</span></div>
+        <div class="preset-group">
+          <button class="preset-btn" data-preset="easy">Easy</button>
+          <button class="preset-btn active" data-preset="normal">Normal</button>
+          <button class="preset-btn" data-preset="hard">Hard</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>Note Sensitivity</span>
+          <span class="control-val" id="valSensitivity">1.40</span>
+        </div>
+        <input type="range" id="sliderSensitivity" min="0.60" max="2.60" step="0.05" value="1.40" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>Min Note Spacing</span>
+          <span class="control-val" id="valSpacing">180 ms</span>
+        </div>
+        <input type="range" id="sliderSpacing" min="110" max="360" step="5" value="180" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>Tile Fall Speed</span>
+          <span class="control-val" id="valScroll">640 px/s</span>
+        </div>
+        <input type="range" id="sliderScroll" min="400" max="1100" step="10" value="640" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>Audio Sync Offset</span>
+          <span class="control-val" id="valOffset">0 ms</span>
+        </div>
+        <input type="range" id="sliderOffset" min="-150" max="150" step="2" value="0" />
+      </div>
+
+      <button id="btnRegenerate" disabled>Rebuild Chart</button>
+    </div>
+
+    <details>
+      <summary>Controls & Lane Mapping</summary>
+      <div class="details-body">
+        <div class="stat-row"><span><kbd>1</kbd> Lane 1</span><span>Low / Bass (20–170Hz)</span></div>
+        <div class="stat-row"><span><kbd>2</kbd> Lane 2</span><span>Low-Mid / Snare (170–700Hz)</span></div>
+        <div class="stat-row"><span><kbd>3</kbd> Lane 3</span><span>Melody / Mid (700–2.8kHz)</span></div>
+        <div class="stat-row"><span><kbd>4</kbd> Lane 4</span><span>Highs / Cymbals (2.8–12kHz)</span></div>
+        <div class="stat-row"><span><kbd>Space</kbd> Play / Pause</span><span><kbd>R</kbd> Restart</span></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Detailed Stats & Telemetry</summary>
+      <div class="details-body">
+        <div class="stat-row"><span>Perfect (±35ms)</span><span id="countPerfect">0</span></div>
+        <div class="stat-row"><span>Great (±75ms)</span><span id="countGreat">0</span></div>
+        <div class="stat-row"><span>Good (±120ms)</span><span id="countGood">0</span></div>
+        <div class="stat-row"><span>Miss</span><span id="countMiss">0</span></div>
+        <div class="stat-row"><span>Max Combo</span><span id="statCombo">0</span></div>
+        <div class="stat-row"><span>Avg Hit Offset</span><span id="hudMeanOffset">0.0 ms</span></div>
+        <div class="stat-row"><span>Frame Rate</span><span id="hudFps">60 FPS</span></div>
+        <div class="stat-row"><span>Audio Clock</span><span id="hudAudioClock">0.00 s</span></div>
+        <div class="stat-row"><span>Song Progress</span><span id="hudSongTime">0.0 / 0.0 s</span></div>
+        <div class="stat-row"><span>Total / Active Tiles</span><span><span id="hudTotalNotes">0</span> / <span id="hudActiveNotes">0</span></span></div>
+      </div>
+    </details>
+
+    <div class="group-box">
+      <div class="group-title"><span>Chart JSON</span></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button id="btnExportJson" disabled>Export .json</button>
+        <label class="file-btn" for="jsonFileInput">Import .json</label>
+        <input type="file" id="jsonFileInput" accept=".json,application/json" />
+      </div>
+    </div>
+  </aside>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
